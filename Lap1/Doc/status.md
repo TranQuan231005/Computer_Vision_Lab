@@ -6,23 +6,23 @@
 
 | Done | ID | Task |
 |:---:|---:|---|
-| [ ] | 1.1 | Install OpenCV and Pillow. |
+| [x] | 1.1 | Install OpenCV and Pillow. |
 
 ## Phase 2 — Read and Display Images
 
 | Done | ID | Task |
 |:---:|---:|---|
-| [ ] | 2.1 | Read an image from the computer. |
-| [ ] | 2.2 | Display the image on the screen. |
-| [ ] | 2.3 | Save the image in a different format. |
+| [x] | 2.1 | Read an image from the computer. |
+| [x] | 2.2 | Display the image on the screen. |
+| [x] | 2.3 | Save the image in a different format. |
 
 ## Phase 3 — Color Space Conversion
 
 | Done | ID | Task |
 |:---:|---:|---|
-| [ ] | 3.1 | Convert the image to grayscale. |
-| [ ] | 3.2 | Convert the image to HSV. |
-| [ ] | 3.3 | Convert the image to LAB. |
+| [x] | 3.1 | Convert the image to grayscale. |
+| [x] | 3.2 | Convert the image to HSV. |
+| [x] | 3.3 | Convert the image to LAB. |
 
 ## Phase 4 — Crop and Resize
 
