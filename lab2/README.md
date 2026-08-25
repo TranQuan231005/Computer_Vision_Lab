@@ -21,7 +21,7 @@ canny-edge-detection/
 - [x] Buoc 3: Non-Maximum Suppression
 - [x] Buoc 4: Hysteresis Thresholding
 - [x] So sanh voi `cv2.Canny()`
-- [ ] Toi uu toc do (vong lap thuan Python con cham voi anh lon)
+- [ ] dùng Vectorization với NumPy, Numba, hoặc Cython
 - [ ] Thu nghiem tren nhieu anh/nguong khac nhau
 
 ## Cach chay
