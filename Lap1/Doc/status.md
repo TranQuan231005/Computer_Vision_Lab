@@ -28,14 +28,14 @@
 
 | Done | ID | Task |
 |:---:|---:|---|
-| [ ] | 4.1 | Crop a region of the image. |
-| [ ] | 4.2 | Resize the image by scale or fixed dimensions. |
+| [x] | 4.1 | Crop a region of the image. |
+| [x] | 4.2 | Resize the image by scale or fixed dimensions. |
 
 ## Phase 5 — Draw Basic Shapes
 
 | Done | ID | Task |
 |:---:|---:|---|
-| [ ] | 5.1 | Draw a line on the image. |
-| [ ] | 5.2 | Draw a circle on the image. |
-| [ ] | 5.3 | Draw a rectangle on the image. |
-| [ ] | 5.4 | Add text to the image. |
+| [x] | 5.1 | Draw a line on the image. |
+| [x] | 5.2 | Draw a circle on the image. |
+| [x] | 5.3 | Draw a rectangle on the image. |
+| [x] | 5.4 | Add text to the image. |
