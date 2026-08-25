@@ -30,7 +30,7 @@ canny-edge-detection/
    ```
    pip install opencv-python numpy matplotlib
    ```
-2. Bo anh dau vao vao thu muc `input/` (mac dinh notebook doc `input/circle.jpg` — doi ten file hoac sua bien `INPUT_PATH` trong notebook neu dung ten khac).
+2. Bo anh dau vao vao thu muc `input/` (mac dinh notebook doc `input/tên-ảnh.jpg` — doi ten file hoac sua bien `INPUT_PATH` trong notebook neu dung ten khac).
 3. Mo va chay `notebooks/canny_edge_detection.ipynb` tu tren xuong duoi.
 4. Ket qua (hinh so sanh 6 buoc) se tu dong luu vao `output/canny_steps.png`.
 
