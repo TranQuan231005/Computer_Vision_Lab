@@ -5,12 +5,14 @@ Tu cai dat 4 buoc cua thuat toan Canny (Gaussian Blur -> Sobel Gradient -> Non-M
 ## Cau truc thu muc
 
 ```
-canny-edge-detection/
-├── README.md
-├── input/              # Anh dau vao (vd: circle.jpg)
-├── output/             # Ket qua xuat ra (hinh so sanh 6 buoc)
-└── notebooks/
-    └── canny_edge_detection.ipynb   # Notebook chinh, chia theo tung buoc
+lab2/
+├── README.md                  # Tài liệu hướng dẫn & giải thích dự án
+├── plan.md                    # Kế hoạch & checklist công việc
+├── visioncanny.py             # Script Python chứa các hàm cài đặt Canny
+├── canny_edge_detection.ipynb # Notebook chính: Cài đặt từng bước & so sánh Canny
+├── LinearFiltering.ipynb      # Notebook bài tập về lọc tuyến tính (Linear Filtering)
+├── baitapnangcao.ipynb        # Các bài tập/thử nghiệm nâng cao
+└── output/                    # Thư mục chứa ảnh kết quả xuất ra
 ```
 
 ## Trang thai
