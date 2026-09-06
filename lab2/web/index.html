@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Computer Vision Lab 2 — Interactive Visualization Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==================== Header & Phase Navigation ==================== -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🔬</div>
+      <div>
+        <h1>Computer Vision Lab 2</h1>
+        <span class="badge">Interactive Visualizer</span>
+      </div>
+    </div>
+
+    <nav class="nav-tabs" id="navTabs">
+      <button class="tab-btn active" data-tab="phase1">
+        <span class="phase-num">P1</span> Toán tử điểm ảnh
+      </button>
+      <button class="tab-btn" data-tab="phase2">
+        <span class="phase-num">P2</span> Lọc tuyến tính
+      </button>
+      <button class="tab-btn" data-tab="phase3">
+        <span class="phase-num">P3</span> Phát hiện cạnh & Kernel
+      </button>
+      <button class="tab-btn" data-tab="phase4">
+        <span class="phase-num">P4</span> Lọc phi tuyến
+      </button>
+      <button class="tab-btn" data-tab="phase5">
+        <span class="phase-num">P5</span> Thuật toán Canny
+      </button>
+      <button class="tab-btn" data-tab="comparison">
+        <span class="phase-num">📊</span> So sánh tổng hợp
+      </button>
+    </nav>
+  </header>
+
+  <!-- ==================== Toolbar (Upload, Presets, Actions) ==================== -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">Ảnh mẫu:</span>
+      <div class="preset-group">
+        <button class="preset-chip active" data-preset="geometric">Hình học & Cạnh</button>
+        <button class="preset-chip" data-preset="portrait">Cameraman</button>
+        <button class="preset-chip" data-preset="low_contrast">Độ tương phản thấp</button>
+        <button class="preset-chip" data-preset="noisy">Nhiễu muối tiêu</button>
+      </div>
+    </div>
+
+    <div class="toolbar-group">
+      <input type="file" id="fileInput" accept="image/*" style="display: none;">
+      <button class="btn btn-primary" id="btnUpload">
+        <span>📁</span> Tải ảnh lên (hoặc kéo thả)
+      </button>
+      <button class="btn" id="btnReset">
+        <span>↺</span> Đặt lại
+      </button>
+      <button class="btn btn-accent" id="btnDownload">
+        <span>⬇</span> Tải ảnh kết quả
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== Main Application Layout ==================== -->
+  <main>
+
+    <!-- Left Column: Viewports & Theory Cards -->
+    <section class="viewport-section">
+      <div class="viewport-card">
+        <div class="viewport-header">
+          <div class="viewport-title" id="viewportTitle">
+            <span>🖼️</span> Chế độ so sánh Before / After (Kéo thanh trượt để so sánh)
+          </div>
+          <div class="view-mode-toggle">
+            <button class="mode-btn active" id="modeSplit">Thanh trượt Split</button>
+            <button class="mode-btn" id="modeSideBySide">Song song</button>
+          </div>
+        </div>
+
+        <!-- Split / Single View Stage -->
+        <div class="stage-container" id="stageContainer">
+          <div class="split-wrapper" id="splitWrapper">
+            <canvas id="canvasAfter" class="canvas-layer canvas-after"></canvas>
+            <canvas id="canvasBefore" class="canvas-layer canvas-before"></canvas>
+
+            <!-- Split divider line and draggable circle handle -->
+            <div class="split-divider" id="splitDivider">
+              <div class="split-handle">↔</div>
+            </div>
+
+            <!-- Floating State Tags -->
+            <div class="pill-badge pill-before" id="badgeBefore">Gốc (Original)</div>
+            <div class="pill-badge pill-after" id="badgeAfter">Đã xử lý (Filtered)</div>
+          </div>
+
+          <!-- Drag & Drop Overlay -->
+          <div class="drop-overlay" id="dropOverlay">
+            <span style="font-size: 3rem;">📥</span>
+            <div style="font-size: 1.1rem; font-weight: 600;">Thả ảnh vào đây để tải lên</div>
+            <div style="font-size: 0.85rem; color: var(--text-dim);">Hỗ trợ PNG, JPG, WEBP, BMP</div>
+          </div>
+        </div>
+
+        <!-- Multi-Grid Breakdown (Used for Canny Steps & Comparison Mode) -->
+        <div class="multi-grid" id="multiGrid"></div>
+      </div>
+
+      <!-- Theory & Code Snippets Card -->
+      <div class="theory-card">
+        <div class="theory-header">
+          <span style="font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+            <span>📘</span> Lý thuyết toán học & Mã nguồn Python (OpenCV)
+          </span>
+        </div>
+        <div class="theory-content">
+          <div class="math-box" id="mathContent"></div>
+          <div class="code-wrapper">
+            <button class="copy-btn" id="btnCopyCode">Copy code</button>
+            <pre><code id="pythonCodeContent"></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Interactive Parameter Control Panels -->
+    <aside class="sidebar-controls">
+
+      <!-- ================= Panel 1: Point Operations ================= -->
+      <div class="panel-card phase-panel" id="panel-phase1">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️</span> Tham số toán tử điểm ảnh
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>Độ sáng (Brightness - β)</span>
+            <span class="val-badge" id="valBrightness">0</span>
+          </div>
+          <input type="range" id="sliderBrightness" min="-255" max="255" value="0" step="1">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>Độ tương phản (Contrast - α)</span>
+            <span class="val-badge" id="valContrast">1.0x</span>
+          </div>
+          <input type="range" id="sliderContrast" min="0.0" max="5.0" value="1.0" step="0.05">
+        </div>
+
+        <label class="toggle-row">
+          <span>Tạo ảnh âm bản (Negative)</span>
+          <input type="checkbox" id="checkNegative">
+        </label>
+
+        <div style="border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; flex-direction: column; gap: 12px;">
+          <label class="toggle-row">
+            <span style="font-weight: 600;">Cắt ngưỡng nhị phân (Binary Threshold)</span>
+            <input type="checkbox" id="checkThreshold">
+          </label>
+
+          <div class="control-group" id="thresholdControls" style="opacity: 0.5; pointer-events: none;">
+            <div class="control-label-row">
+              <span>Giá trị ngưỡng (Threshold T)</span>
+              <span class="val-badge" id="valThreshold">128</span>
+            </div>
+            <input type="range" id="sliderThreshold" min="0" max="255" value="128" step="1">
+
+            <label class="toggle-row" style="margin-top: 6px;">
+              <span>Đảo ngược nhị phân (Invert Binary)</span>
+              <input type="checkbox" id="checkInvertBinary">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Panel 2: Linear Filtering ================= -->
+      <div class="panel-card phase-panel" id="panel-phase2" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️</span> Tham số lọc tuyến tính
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label-row">Loại bộ lọc</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" data-linear="gaussian">Gaussian</button>
+            <button class="seg-btn" data-linear="box">Mean / Box</button>
+            <button class="seg-btn" data-linear="sharpen">Sharpen (Làm nét)</button>
+          </div>
+        </div>
+
+        <div class="control-group" id="groupKernelSize">
+          <div class="control-label-row">
+            <span>Kích thước Kernel</span>
+            <span class="val-badge" id="valKernelSize">5x5</span>
+          </div>
+          <input type="range" id="sliderKernelSize" min="3" max="31" value="5" step="2">
+        </div>
+
+        <div class="control-group" id="groupSigma">
+          <div class="control-label-row">
+            <span>Độ lệch chuẩn Gaussian (Sigma σ)</span>
+            <span class="val-badge" id="valSigma">1.5</span>
+          </div>
+          <input type="range" id="sliderSigma" min="0.1" max="10.0" value="1.5" step="0.1">
+        </div>
+
+        <div class="control-group" id="groupSharpen" style="display: none;">
+          <div class="control-label-row">
+            <span>Độ mạnh làm sắc nét (Strength α)</span>
+            <span class="val-badge" id="valSharpenStrength">1.0</span>
+          </div>
+          <input type="range" id="sliderSharpenStrength" min="0.1" max="5.0" value="1.0" step="0.1">
+
+          <div class="control-label-row" style="margin-top: 10px;">Kernel Laplacian</div>
+          <div class="segmented-control">
+            <button class="seg-btn active" data-neighbor="8">8-láng giềng</button>
+            <button class="seg-btn" data-neighbor="4">4-láng giềng</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Panel 3: Edge Detection & Custom Kernel ================= -->
+      <div class="panel-card phase-panel" id="panel-phase3" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️</span> Phát hiện cạnh & Thiết kế Kernel
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label-row">Toán tử phát hiện cạnh</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" data-edge="sobel">Sobel</button>
+            <button class="seg-btn" data-edge="prewitt">Prewitt</button>
+            <button class="seg-btn" data-edge="custom">Ma trận tự thiết kế</button>
+          </div>
+        </div>
+
+        <!-- Direction for Sobel/Prewitt -->
+        <div class="control-group" id="groupEdgeDirection">
+          <span class="control-label-row">Hướng Gradient</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" data-dir="magnitude">Độ lớn (Magnitude)</button>
+            <button class="seg-btn" data-dir="x">Biên dọc (Gx)</button>
+            <button class="seg-btn" data-dir="y">Biên ngang (Gy)</button>
+          </div>
+        </div>
+
+        <!-- Interactive Custom Kernel Editor -->
+        <div id="groupCustomKernel" style="display: none; flex-direction: column; gap: 12px;">
+          <div class="control-group">
+            <span class="control-label-row">Nạp ma trận mẫu (Presets)</span>
+            <select id="selectKernelPreset">
+              <option value="identity">Identity (Nguyên bản)</option>
+              <option value="box_blur">Mean / Box Blur</option>
+              <option value="gaussian_blur">Gaussian Blur 3x3</option>
+              <option value="sharpen_4">Sharpen (4-hướng)</option>
+              <option value="sharpen_8">Sharpen (8-hướng)</option>
+              <option value="laplacian">Laplacian (Vi phân bậc 2)</option>
+              <option value="sobel_x">Sobel X (Cạnh đứng)</option>
+              <option value="sobel_y">Sobel Y (Cạnh ngang)</option>
+              <option value="prewitt_x">Prewitt X</option>
+              <option value="prewitt_y">Prewitt Y</option>
+              <option value="emboss" selected>Emboss (Chạm nổi 3D)</option>
+              <option value="ridge">Ridge Detection (Gờ chi tiết)</option>
+            </select>
+          </div>
+
+          <div class="matrix-container">
+            <div style="font-size: 0.78rem; color: var(--text-dim); margin-bottom: 4px;">
+              Chỉnh sửa trực tiếp trọng số trong ô:
+            </div>
+            <div class="kernel-grid grid-3x3" id="kernelGrid"></div>
+
+            <div class="matrix-meta-row">
+              <div class="matrix-meta-field">
+                <label style="font-size: 0.74rem; color: var(--text-muted);">Divisor (Chia)</label>
+                <input type="number" id="inputDivisor" value="1" step="1">
+              </div>
+              <div class="matrix-meta-field">
+                <label style="font-size: 0.74rem; color: var(--text-muted);">Bias (Bù)</label>
+                <input type="number" id="inputBias" value="128" step="1">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Panel 4: Non-linear Filtering ================= -->
+      <div class="panel-card phase-panel" id="panel-phase4" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️</span> Tham số lọc phi tuyến tính
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label-row">Thuật toán</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" data-nonlinear="median">Lọc trung vị (Median)</button>
+            <button class="seg-btn" data-nonlinear="bilateral">Lọc Bilateral</button>
+          </div>
+        </div>
+
+        <div class="control-group" id="groupMedian">
+          <div class="control-label-row">
+            <span>Kích thước cửa sổ (Window Size)</span>
+            <span class="val-badge" id="valMedianSize">5x5</span>
+          </div>
+          <input type="range" id="sliderMedianSize" min="3" max="21" value="5" step="2">
+        </div>
+
+        <div id="groupBilateral" style="display: none; flex-direction: column; gap: 12px;">
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Đường kính láng giềng (Diameter d)</span>
+              <span class="val-badge" id="valBilateralDiameter">9</span>
+            </div>
+            <input type="range" id="sliderBilateralDiameter" min="3" max="25" value="9" step="2">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Sigma Không gian màu (σ Color)</span>
+              <span class="val-badge" id="valBilateralColor">75</span>
+            </div>
+            <input type="range" id="sliderBilateralColor" min="1" max="255" value="75" step="1">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row">
+              <span>Sigma Không gian tọa độ (σ Space)</span>
+              <span class="val-badge" id="valBilateralSpace">75</span>
+            </div>
+            <input type="range" id="sliderBilateralSpace" min="1" max="255" value="75" step="1">
+          </div>
+        </div>
+
+        <!-- Synthetic Noise Injector -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <label class="toggle-row">
+            <span>Bơm nhiễu muối tiêu (Test khử nhiễu)</span>
+            <input type="checkbox" id="checkAddNoise">
+          </label>
+
+          <div class="control-group" id="groupNoiseDensity" style="opacity: 0.5; pointer-events: none;">
+            <div class="control-label-row">
+              <span>Mật độ nhiễu (Noise Density)</span>
+              <span class="val-badge" id="valNoiseDensity">6%</span>
+            </div>
+            <input type="range" id="sliderNoiseDensity" min="1" max="50" value="6" step="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Panel 5: Canny Pipeline ================= -->
+      <div class="panel-card phase-panel" id="panel-phase5" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️</span> Tham số thuật toán Canny
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label-row">Hiển thị bước trung gian</span>
+          <select id="selectCannyStep">
+            <option value="final">Kết quả Canny cuối cùng</option>
+            <option value="step1_blur">Bước 1: Gaussian Blur</option>
+            <option value="step2_grad">Bước 2: Sobel Gradient Magnitude</option>
+            <option value="step3_nms">Bước 3: Non-Maximum Suppression (NMS)</option>
+            <option value="step4_thresh">Bước 4: Phân ngưỡng kép (Double Threshold)</option>
+            <option value="all_grid">Hiển thị toàn bộ 6 bước (Grid)</option>
+          </select>
+        </div>
+
+        <!-- Threshold Mode Selector: Ratio vs Absolute 0-255 -->
+        <div class="control-group">
+          <span class="control-label-row">Kiểu đặt ngưỡng</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" id="btnThreshModeRatio">Tỉ lệ Ratio (0.0 - 1.0)</button>
+            <button class="seg-btn" id="btnThreshModeAbs">Giá trị OpenCV (0 - 255)</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>Gaussian Sigma (σ)</span>
+            <span class="val-badge" id="valCannySigma">1.4</span>
+          </div>
+          <input type="range" id="sliderCannySigma" min="0.1" max="10.0" value="1.4" step="0.1">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span id="labelCannyLow">Ngưỡng thấp (Low Ratio: 0% - 100%)</span>
+            <span class="val-badge" id="valCannyLowRatio">0.05</span>
+          </div>
+          <input type="range" id="sliderCannyLowRatio" min="0.0" max="1.0" value="0.05" step="0.01">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span id="labelCannyHigh">Ngưỡng cao (High Ratio: 0% - 100%)</span>
+            <span class="val-badge" id="valCannyHighRatio">0.15</span>
+          </div>
+          <input type="range" id="sliderCannyHighRatio" min="0.0" max="1.0" value="0.15" step="0.01">
+        </div>
+
+        <!-- Canny Preset Scenarios -->
+        <div class="control-group" style="margin-top: 6px;">
+          <span class="control-label-row">Kịch bản thử nghiệm Canny</span>
+          <div class="segmented-control">
+            <button class="seg-btn active" data-cannypreset="standard">Chuẩn</button>
+            <button class="seg-btn" data-cannypreset="noisy">Nhiều nhiễu</button>
+            <button class="seg-btn" data-cannypreset="low_contrast">Tương phản kém</button>
+            <button class="seg-btn" data-cannypreset="fine_detail">Chi tiết mịn</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Panel 6: Master Comparison ================= -->
+      <div class="panel-card phase-panel" id="panel-comparison" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️</span> So sánh đa bộ lọc
+          </div>
+        </div>
+
+        <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+          Chế độ này áp dụng đồng thời các bộ lọc tiêu biểu trên cùng ảnh nguồn để đánh giá trực quan ưu/nhược điểm từng phương pháp.
+        </div>
+
+        <div class="control-group">
+          <span class="control-label-row">Kích thước cửa sổ lọc chung</span>
+          <div class="segmented-control">
+            <button class="seg-btn" data-compk="3">3x3</button>
+            <button class="seg-btn active" data-compk="5">5x5</button>
+            <button class="seg-btn" data-compk="7">7x7</button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <footer>
+    Computer Vision Lab 2 &copy; 2026 — Interactive Visualization Studio (Point Operations, Linear & Non-linear Filters, Sobel, Prewitt, Custom Matrix, Canny)
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

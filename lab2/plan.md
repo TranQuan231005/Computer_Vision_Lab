@@ -19,16 +19,16 @@
 ## Phase 3 — Phát hiện cạnh cơ bản
 | Xong | ID | Công việc | Thành viên đảm nhận |
 |---|---|---|---|
-| [ ] | 3.1 | Áp dụng toán tử Sobel. | Minh Quan |
-| [ ] | 3.2 | Áp dụng toán tử Prewitt. | Minh Quan |
-| [ ] | 3.3 | Tự thiết kế kernel và so sánh hiệu ứng. | Minh Quan |
-| [ ] | 3.4 | So sánh kết quả của tất cả các loại lọc đã dùng. | Minh Quan |
+| [X] | 3.1 | Áp dụng toán tử Sobel. | Minh Quan |
+| [X] | 3.2 | Áp dụng toán tử Prewitt. | Minh Quan |
+| [X] | 3.3 | Tự thiết kế kernel và so sánh hiệu ứng. | Minh Quan |
+| [X] | 3.4 | So sánh kết quả của tất cả các loại lọc đã dùng. | Minh Quan |
 
 ## Phase 4 — Lọc phi tuyến tính
 | Xong | ID | Công việc | Thành viên đảm nhận |
 |---|---|---|---|
-| [ ] | 4.1 | Áp dụng lọc trung vị (nhiễu muối tiêu). | Minh Quan |
-| [ ] | 4.2 | Áp dụng lọc bilateral. | Minh Quan |
+| [X] | 4.1 | Áp dụng lọc trung vị (nhiễu muối tiêu). | Minh Quan |
+| [X] | 4.2 | Áp dụng lọc bilateral. | Minh Quan |
 
 ## Phase 5 — Thuật toán Canny
 | Xong | ID | Công việc | Thành viên đảm nhận |
