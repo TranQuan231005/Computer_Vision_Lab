@@ -1,4 +1,4 @@
-e# Canny Edge Detection — Tu cai dat tu dau
+# Canny Edge Detection — Tự cài đặt từ đầu
 
 Tu cai dat 4 buoc cua thuat toan Canny (Gaussian Blur -> Sobel Gradient -> Non-Maximum Suppression -> Hysteresis Thresholding), so sanh voi ham `cv2.Canny()` co san.
 
@@ -26,10 +26,10 @@ lab2/
 - [x] Buoc 2: Tinh gradient (Sobel)
 - [x] Buoc 3: Non-Maximum Suppression
 - [x] Buoc 4: Hysteresis Thresholding
-- [x] So sanh voi `cv2.Canny()`
+- [x] So sanh voi `cv2.Canny()` va Scikit-image
 - [x] Xây dựng Web App trực quan hóa tương tác (Phase 1 đến Phase 5)
-- [ ] dùng Vectorization với NumPy, Numba, hoặc Cython
-- [ ] Thu nghiem tren nhieu anh/nguong khac nhau
+- [x] Dùng Vectorization với NumPy & Tăng tốc JIT với Numba (Hiệu năng tương đương C++ OpenCV ~3.7ms)
+- [x] Thử nghiệm trên nhiều loại ảnh (Chuẩn, Tương phản thấp, Nhiễu, Vân sóng) & nhiều bộ ngưỡng khác nhau
 
 ## Cach chay
 
@@ -59,22 +59,31 @@ lab2/
 
 1. **Cài đặt thư viện cần thiết:**
    ```bash
-   pip install opencv-python numpy matplotlib scikit-image
+   pip install opencv-python numpy matplotlib scikit-image numba scipy
    ```
-2. **Chạy script Canny độc lập:**
+2. **Chạy script Canny độc lập & Benchmark hiệu năng:**
    ```bash
    python visioncanny.py
    ```
+   *Kết quả benchmark đo được trên ảnh:*
+   * `Nested Loop`: ~284.9 ms
+   * `Vectorized (NumPy/SciPy)`: ~354.3 ms
+   * `Numba JIT (Compiled)`: **~3.72 ms** (Tăng tốc ~76x so với loop, tiệm cận **~3.71 ms** của OpenCV C++)
 3. **Mở và thực thi các Notebook:**
-   * `canny_edge_detection.ipynb`: Cài đặt chi tiết từng bước thuật toán Canny và so sánh đối chiếu với OpenCV `cv2.Canny()`.
+   * `canny_edge_detection.ipynb`: Cài đặt chi tiết từng bước thuật toán Canny, so sánh Vectorization vs Numba JIT vs OpenCV `cv2.Canny()` và Scikit-image `skimage.feature.canny()`.
    * `LinearFiltering.ipynb`: Các bài tập về lọc tuyến tính.
    * `baitapnangcao.ipynb`: Các bài tập nâng cao mở rộng.
-4. **Kết quả:** Ảnh so sánh các bước sẽ được hiển thị trên cửa sổ đồ thị Matplotlib hoặc lưu trong thư mục `output/`.
+4. **Kết quả:** Ảnh so sánh các bước và thử nghiệm mở rộng được lưu tự động trong thư mục `output/`:
+   * `output/output_canny_vectorized.png`: Lưới 6 bước Canny tự cài đặt.
+   * `output/canny_image_types_test.png`: Thử nghiệm trên 4 loại ảnh (chuẩn, tương phản thấp, nhiễu Gauss/muối tiêu, kết cấu phức tạp).
+   * `output/canny_threshold_variation_test.png`: Khảo sát biến thiên 4 bộ ngưỡng Hysteresis.
 
 ---
 
 ## Ghi chu
 
 - Ngưỡng hysteresis mặc định trong script: `low_ratio=0.05`, `high_ratio=0.15` (tính theo `magnitude.max()` sau NMS) — có thể điều chỉnh để thay đổi độ nhạy bắt cạnh.
-- `cv2.Canny(blurred, 50, 150)` dùng để đối chiếu kết quả tự cài đặt với hàm chuẩn của OpenCV.
+- `cv2.Canny(blurred, 50, 150)` và `skimage.feature.canny` dùng để đối chiếu kết quả tự cài đặt với hàm chuẩn của OpenCV và Scikit-image.
+
+
 
