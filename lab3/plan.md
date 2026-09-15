@@ -2,6 +2,16 @@
 
 > `[ ]` Chưa làm · `[x]` Đã xong
 
+## Cập nhật phần Thanh Nguyên — 16/09/2026
+
+- Phase 3–4 dùng dataset và API của Nhân trong `vision_wavelet.py`.
+- Đánh giá chia theo nguồn, chọn ngưỡng trên hiệu chỉnh bằng Youden J,
+  báo cáo ROC/AUC, confusion matrix và metrics trên kiểm thử.
+- Khảo sát 55 cấu hình; xuất bảng CSV, độ bền theo biến dạng và latency.
+- Báo cáo thực nghiệm nằm ở mục 7–8 của `Lab3.ipynb`, đầu ra ở
+  `results/evaluation/`; kiểm thử bổ sung trong `test_evaluation.py`.
+- Phase 6 tiếp tục để trống vì chưa tích hợp Web Studio của cả nhóm.
+
 ## Cập nhật phần Trần Ngọc Nhân — 15/09/2026
 
 - Hoàn thành các mục **1.1–1.5 và 2.1–2.5** trong `vision_wavelet.py`.
@@ -55,20 +65,20 @@ Bài thực hành tập trung vào việc áp dụng **Biến đổi Wavelet 2D 
 ### Phase 3 — Đánh giá Hiệu suất & Đường cong ROC (Evaluation & ROC Analysis)
 | Xong | ID | Công việc chi tiết | Thành viên đảm nhận |
 |:---:|:---:|---|---|
-| [ ] | 3.1 | Tính toán ma trận khoảng cách Hamming cho toàn bộ các cặp ảnh trong tập dữ liệu kiểm thử. | Thanh Nguyên |
-| [ ] | 3.2 | Quét dải ngưỡng phân loại $\theta \in [0, N_{\text{bits}}]$ để phân loại Tương tự / Khác biệt. | Thanh Nguyên |
-| [ ] | 3.3 | Tính toán các chỉ số thống kê định lượng: Accuracy, Sensitivity (Recall), Specificity, Precision, F1-Score. | Thanh Nguyên |
-| [ ] | 3.4 | Vẽ đường cong ROC (True Positive Rate vs. False Positive Rate) và tính chỉ số AUC. | Thanh Nguyên |
-| [ ] | 3.5 | Xác định ngưỡng phân loại tối ưu (Optimal Threshold) bằng chỉ số Youden's J Statistic và vẽ Ma trận nhầm lẫn (Confusion Matrix). | Thanh Nguyên |
+| [x] | 3.1 | Tính toán ma trận khoảng cách Hamming cho toàn bộ các cặp ảnh trong tập dữ liệu kiểm thử. | Thanh Nguyên |
+| [x] | 3.2 | Quét dải ngưỡng phân loại $\theta \in [0, N_{\text{bits}}]$ để phân loại Tương tự / Khác biệt. | Thanh Nguyên |
+| [x] | 3.3 | Tính toán các chỉ số thống kê định lượng: Accuracy, Sensitivity (Recall), Specificity, Precision, F1-Score. | Thanh Nguyên |
+| [x] | 3.4 | Vẽ đường cong ROC (True Positive Rate vs. False Positive Rate) và tính chỉ số AUC. | Thanh Nguyên |
+| [x] | 3.5 | Xác định ngưỡng phân loại tối ưu (Optimal Threshold) bằng chỉ số Youden's J Statistic và vẽ Ma trận nhầm lẫn (Confusion Matrix). | Thanh Nguyên |
 
 ### Phase 4 — Bài tập Nâng cao 1: Khảo sát Đa phương pháp Băm (Survey & Benchmark)
 | Xong | ID | Công việc chi tiết | Thành viên đảm nhận |
 |:---:|:---:|---|---|
-| [ ] | 4.1 | Khảo sát thực nghiệm các họ Wavelet trong PyWavelets (`haar`, `db2`, `db4`, `sym4`, `bior2.2`, `coif2`) trên cùng tập dữ liệu. | Thanh Nguyên |
-| [ ] | 4.2 | Khảo sát ảnh hưởng của cấp độ phân giải (Level 1, 2, 3, 4) và kích thước Hash ($8\times8$ vs $16\times16$). | Thanh Nguyên |
-| [ ] | 4.3 | Cài đặt & so sánh đối đầu với các thuật toán băm ảnh phổ biến khác: Average Hash (`aHash`), Difference Hash (`dHash`), Perceptual Hash (`pHash`). | Thanh Nguyên |
-| [ ] | 4.4 | Kiểm thử độ bền vững (Robustness Test) theo từng loại biến dạng (Noise, Rotation, Scale, Lighting, JPEG Blur) và đo thời gian thực thi (Latency Benchmark). | Thanh Nguyên |
-| [ ] | 4.5 | Tổng hợp bảng số liệu so sánh toàn diện và vẽ biểu đồ radar / cột phân tích trong notebook. | Thanh Nguyên |
+| [x] | 4.1 | Khảo sát thực nghiệm các họ Wavelet trong PyWavelets (`haar`, `db2`, `db4`, `sym4`, `bior2.2`, `coif2`) trên cùng tập dữ liệu. | Thanh Nguyên |
+| [x] | 4.2 | Khảo sát ảnh hưởng của cấp độ phân giải (Level 1, 2, 3, 4) và kích thước Hash ($8\times8$ vs $16\times16$). | Thanh Nguyên |
+| [x] | 4.3 | Cài đặt & so sánh đối đầu với các thuật toán băm ảnh phổ biến khác: Average Hash (`aHash`), Difference Hash (`dHash`), Perceptual Hash (`pHash`). | Thanh Nguyên |
+| [x] | 4.4 | Kiểm thử độ bền vững (Robustness Test) theo từng loại biến dạng (Noise, Rotation, Scale, Lighting, JPEG Blur) và đo thời gian thực thi (Latency Benchmark). | Thanh Nguyên |
+| [x] | 4.5 | Tổng hợp bảng số liệu so sánh toàn diện và vẽ biểu đồ radar / cột phân tích trong notebook. | Thanh Nguyên |
 
 ### Phase 5 — Bài tập Nâng cao 2 & Web Studio tương tác (Web UI & CBIR Engine)
 | Xong | ID | Công việc chi tiết | Thành viên đảm nhận |

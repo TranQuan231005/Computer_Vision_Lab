@@ -1,5 +1,44 @@
 # Lab 3: So sánh sự tương đồng hình ảnh sử dụng Wavelet (Wavelet Hashing)
 
+## Bản bàn giao — Thanh Nguyên (Phase 3–4)
+
+Đã bổ sung phần đánh giá và khảo sát vào `vision_wavelet.py`, tái sử dụng
+dataset, `WaveletHasher` và các hàm Hamming/đọc ảnh của Trần Ngọc Nhân.
+Phần thực nghiệm và diễn giải nằm ở mục 7–8 của `Lab3.ipynb`.
+
+Chạy tại thư mục `lab3`:
+
+```powershell
+python -m pip install -r requirements.txt
+python vision_wavelet.py --evaluate
+python -m unittest -v test_vision_wavelet test_evaluation
+python execute_notebook.py
+```
+
+- Tính khoảng cách 330 cặp và ma trận Hamming 240×240 ảnh.
+- Quét ngưỡng 0..N bit; xuất Accuracy, Recall, Specificity, Precision, F1,
+  ROC/AUC và confusion matrix. Dự đoán tương tự khi Hamming ≤ ngưỡng.
+- Chia theo nguồn với seed 42: 10 nguồn hiệu chỉnh, 5 nguồn kiểm thử;
+  loại cặp âm nối hai tập. Chọn Youden J trên hiệu chỉnh, hòa chọn ngưỡng nhỏ nhất,
+  giữ nguyên ngưỡng khi tính metrics kiểm thử.
+- Khảo sát 6 họ wavelet, level 1–4, hash 64/256 bit trên ảnh 256×256 cố định;
+  thêm wHash mặc định và aHash/dHash/pHash: tổng 55 cấu hình.
+- Độ bền theo 15 biến dạng: recall cặp dương kiểm thử và Hamming chuẩn hóa.
+  Latency gồm tiền xử lý và băm ảnh PIL đã giải mã, không gồm I/O;
+  warm-up một lượt, median ba lượt.
+
+Kết quả lưu tại `results/evaluation/`: `report.json`, `benchmark.csv`,
+`robustness.csv`, `default_pair_distances.json`, `hamming_matrix.npy`,
+`matrix_paths.json`, `evaluation.png`, `benchmark.png`.
+`robustness.png` được tạo khi chạy notebook.
+`report.json` lưu cấu hình, toàn bộ sweep, ROC, nguồn chia tập và phiên bản môi trường.
+
+Bộ dữ liệu chỉ có 15 nguồn, gồm 5 chữ số tổng hợp; kết quả toàn bộ cặp chỉ
+mang tính mô tả. Một phép chia nhỏ không đủ kết luận khả năng tổng quát;
+không chọn cấu hình dựa trên thứ hạng kiểm thử. Chi tiết định nghĩa biến thể
+aHash/dHash/pHash và các giới hạn được giải thích trong notebook.
+Phase 5 và phần tích hợp toàn nhóm Phase 6 vẫn theo phân công gốc.
+
 ## Bản bàn giao — Trần Ngọc Nhân
 
 **Đã triển khai Phase 1–2:** dữ liệu, biến dạng, DWT, wHash và Hamming.

@@ -180,6 +180,8 @@ Nguồn ảnh và mô tả: [scikit-image data](https://scikit-image.org/docs/st
 chi tiết từng ảnh được lưu trong `dataset_pairs.json`.
 """)
 
+from notebook_evaluation import evaluation_cells
+cells.extend(evaluation_cells())
 notebook = nbf.v4.new_notebook(cells=cells)
 notebook.metadata.kernelspec = dict(display_name='Python 3', language='python', name='python3')
 nbf.write(notebook, root / 'Lab3.ipynb')

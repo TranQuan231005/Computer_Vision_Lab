@@ -1,4 +1,4 @@
-"""Lab 3 — Dữ liệu và wHash, phần thực hiện của Trần Ngọc Nhân.
+"""Lab 3 — Dữ liệu/wHash: Trần Ngọc Nhân; đánh giá/khảo sát: Thanh Nguyên.
 
 Quy ước: ảnh NumPy là uint8, thứ tự kênh RGB; bit dùng phép >= ngưỡng.
 Đường dẫn trong chỉ mục tương đối với thư mục chứa dataset_pairs.json.
@@ -267,12 +267,220 @@ def compute_pair_distances(data_dir=ROOT / "data", hasher=None):
                 hashes={path: hash_to_hex(bits) for path, bits in hashes.items()}, pairs=rows)
 
 
+class BaselineHasher:
+    """Băm đối chứng aHash, dHash hoặc pHash DCT-II trực chuẩn — Thanh Nguyên."""
+
+    def __init__(self, method="ahash", hash_size=8):
+        if method not in ("ahash", "dhash", "phash"):
+            raise ValueError("Phương pháp phải là ahash, dhash hoặc phash.")
+        if not isinstance(hash_size, int) or hash_size < 2:
+            raise ValueError("hash_size phải là số nguyên >= 2.")
+        self.method, self.hash_size = method, hash_size
+        size = hash_size * 4
+        k, x = np.arange(size)[:, None], np.arange(size)[None, :]
+        self._dct = np.sqrt(2 / size) * np.cos(np.pi * (x + .5) * k / size)
+        self._dct[0] /= np.sqrt(2)
+
+    @property
+    def n_bits(self):
+        """Số bit của mã băm."""
+        return self.hash_size ** 2
+
+    def config(self):
+        """Lưu cấu hình và quy ước để tái lập kết quả."""
+        return dict(method=self.method, hash_size=self.hash_size)
+
+    def hash(self, image):
+        """pHash giữ bit DC nhưng bỏ DC khi tính median; bit dùng >=."""
+        size = self.hash_size
+        if self.method == "dhash":
+            gray = load_image(image).convert("L").resize((size + 1, size), Image.Resampling.LANCZOS)
+            values = np.asarray(gray, dtype=float)
+            return (values[:, 1:] >= values[:, :-1]).ravel()
+        values = preprocess_image(image, size if self.method == "ahash" else size * 4)
+        if self.method == "ahash":
+            return (values >= values.mean()).ravel()
+        low = (self._dct @ values @ self._dct.T)[:size, :size].ravel()
+        return low >= np.median(low[1:])
+
+
+def classification_metrics(labels, distances, threshold):
+    """Tương tự khi Hamming <= ngưỡng; mẫu số bằng 0 trả 0."""
+    labels, distances = np.asarray(labels), np.asarray(distances)
+    if labels.ndim != 1 or labels.size == 0 or distances.shape != labels.shape:
+        raise ValueError("Nhãn và khoảng cách phải là hai vector cùng độ dài, không rỗng.")
+    if not np.isin(labels, [0, 1]).all() or not np.isfinite(distances).all() or (distances < 0).any():
+        raise ValueError("Nhãn phải là 0/1 và khoảng cách phải hữu hạn, không âm.")
+    positive, predicted = labels == 1, distances <= threshold
+    tp, tn = int(np.sum(positive & predicted)), int(np.sum(~positive & ~predicted))
+    fp, fn = int(np.sum(~positive & predicted)), int(np.sum(positive & ~predicted))
+    ratio = lambda a, b: a / b if b else 0.0
+    recall, specificity = ratio(tp, tp + fn), ratio(tn, tn + fp)
+    return dict(threshold=int(threshold), tp=tp, tn=tn, fp=fp, fn=fn,
+                accuracy=ratio(tp + tn, labels.size), recall=recall,
+                specificity=specificity, precision=ratio(tp, tp + fp),
+                f1=ratio(2 * tp, 2 * tp + fp + fn), youden_j=recall + specificity - 1)
+
+
+def evaluate_distances(pairs, n_bits):
+    """Quét 0..N; chọn J lớn nhất, hòa chọn ngưỡng nhỏ nhất; ROC dùng -Hamming."""
+    from sklearn.metrics import roc_curve, roc_auc_score
+    labels = np.array([p["label"] for p in pairs])
+    distances = np.array([p["distance"] for p in pairs])
+    if set(labels.tolist()) != {0, 1}:
+        raise ValueError("Đánh giá ROC cần cả cặp dương và cặp âm.")
+    if not isinstance(n_bits, int) or n_bits < 1 or (distances > n_bits).any() or (distances != np.floor(distances)).any():
+        raise ValueError("Hamming phải là số nguyên trong 0..n_bits.")
+    sweep = [classification_metrics(labels, distances, t) for t in range(n_bits + 1)]
+    best = max(sweep, key=lambda row: (row["youden_j"], -row["threshold"]))
+    fpr, tpr, thresholds = roc_curve(labels, -distances, drop_intermediate=False)
+    return dict(n_pairs=len(pairs), optimal=best, sweep=sweep,
+                auc=float(roc_auc_score(labels, -distances)),
+                roc=dict(fpr=fpr.tolist(), tpr=tpr.tolist(),
+                         score_thresholds=[float(t) if np.isfinite(t) else None for t in thresholds]))
+
+
+def split_source_pairs(pairs, seed=42):
+    """Chia 10 nguồn hiệu chỉnh, 5 nguồn kiểm thử; loại cặp âm nối hai tập."""
+    sources = sorted({p[k] for p in pairs for k in ("source_id1", "source_id2")})
+    if len(sources) < 6:
+        raise ValueError("Cần ít nhất 6 nguồn để chia hai tập có cặp âm.")
+    sources = np.random.default_rng(seed).permutation(sources).tolist()
+    cut = max(3, min(len(sources) - 3, int(len(sources) * 2 / 3)))
+    calibration, test = set(sources[:cut]), set(sources[cut:])
+    select = lambda ids: [p for p in pairs if p["source_id1"] in ids and p["source_id2"] in ids]
+    return select(calibration), select(test), dict(seed=seed,
+        calibration_sources=sorted(calibration), test_sources=sorted(test),
+        excluded_cross_pairs=len(pairs) - len(select(calibration)) - len(select(test)))
+
+
+def benchmark_configurations():
+    """48 wHash cùng ảnh 256² để tách ảnh hưởng họ/level/hash; thêm 6 đối chứng."""
+    configs = {"whash_default": WaveletHasher()}
+    for wave in ("haar", "db2", "db4", "sym4", "bior2.2", "coif2"):
+        for level in range(1, 5):
+            for size in (8, 16):
+                configs[f"whash_{wave}_L{level}_{size}"] = WaveletHasher(size, 256, wave, level)
+    for method in ("ahash", "dhash", "phash"):
+        for size in (8, 16):
+            configs[f"{method}_{size}"] = BaselineHasher(method, size)
+    return configs
+
+
+def run_evaluation(data_dir=ROOT / "data", output_dir=ROOT / "results/evaluation", seed=42, repeats=3):
+    """Chạy Phase 3–4, xuất JSON/CSV và đồ thị; không tái tạo dataset."""
+    import csv
+    import platform
+    import time
+    from collections import defaultdict
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import sklearn
+    if not isinstance(repeats, int) or repeats < 1:
+        raise ValueError("repeats phải >= 1.")
+    data_dir, output_dir = Path(data_dir), Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads((data_dir / "dataset_pairs.json").read_text(encoding="utf-8"))
+    paths = sorted({p[k] for p in manifest["pairs"] for k in ("image1", "image2")})
+    images = {p: load_image(data_dir / p) for p in paths}
+    results, table, robustness = {}, [], []
+    for name, hasher in benchmark_configurations().items():
+        hashes = {p: hasher.hash(image) for p, image in images.items()}
+        timings = []
+        for _ in range(repeats):
+            start = time.perf_counter()
+            for image in images.values():
+                hasher.hash(image)
+            timings.append((time.perf_counter() - start) * 1000 / len(images))
+        pairs = [{**p, "distance": hamming_distance(hashes[p["image1"]], hashes[p["image2"]])}
+                 for p in manifest["pairs"]]
+        calibration, test, split = split_source_pairs(pairs, seed)
+        calibrated = evaluate_distances(calibration, hasher.n_bits)
+        heldout = evaluate_distances(test, hasher.n_bits)
+        threshold = calibrated["optimal"]["threshold"]
+        metrics = classification_metrics([p["label"] for p in test], [p["distance"] for p in test], threshold)
+        full = evaluate_distances(pairs, hasher.n_bits)
+        results[name] = dict(config=hasher.config(), n_bits=hasher.n_bits,
+            calibration=calibrated, test_auc=heldout["auc"], test_roc=heldout["roc"],
+            test_metrics=metrics, descriptive_all_pairs=full,
+            latency_ms_median=float(np.median(timings)), latency_ms_runs=timings)
+        table.append(dict(name=name, n_bits=hasher.n_bits, **metrics, auc=heldout["auc"],
+                          latency_ms=float(np.median(timings))))
+        groups = defaultdict(list)
+        for pair in test:
+            if pair["label"] == 1:
+                groups[pair["transform"]].append(pair["distance"])
+        for transform, distances in sorted(groups.items()):
+            robustness.append(dict(name=name, transform=transform, n=len(distances),
+                mean_distance=float(np.mean(distances)), normalized_distance=float(np.mean(distances) / hasher.n_bits),
+                recall=float(np.mean(np.asarray(distances) <= threshold))))
+        if name == "whash_default":
+            bits = np.stack([hashes[p] for p in paths])
+            matrix = np.count_nonzero(bits[:, None, :] != bits[None, :, :], axis=2)
+            np.save(output_dir / "hamming_matrix.npy", matrix)
+            (output_dir / "matrix_paths.json").write_text(json.dumps(paths, indent=2), encoding="utf-8")
+            (output_dir / "default_pair_distances.json").write_text(json.dumps(pairs, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(name, f"test AUC={heldout['auc']:.4f}, threshold={threshold}", flush=True)
+    report = dict(split=split, environment=dict(python=platform.python_version(), numpy=np.__version__,
+        pywavelets=pywt.__version__, sklearn=sklearn.__version__, platform=platform.platform()),
+        protocol=dict(repeats=repeats, latency="Ảnh PIL đã giải mã; gồm tiền xử lý và băm, không gồm I/O; warm-up một lượt.",
+        decision="Hamming <= threshold", selection="Youden J trên calibration; hòa chọn ngưỡng nhỏ nhất.",
+        caveat="15 nguồn minh họa; kết quả toàn bộ cặp chỉ mô tả. Không dùng test để chọn cấu hình."), methods=results)
+    (output_dir / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+    for filename, rows in (("benchmark.csv", table), ("robustness.csv", robustness)):
+        with (output_dir / filename).open("w", newline="", encoding="utf-8-sig") as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+    default = results["whash_default"]
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    for key, label in (("calibration", "Hiệu chỉnh"), ("test", "Kiểm thử")):
+        roc = default["calibration"]["roc"] if key == "calibration" else default["test_roc"]
+        auc = default["calibration"]["auc"] if key == "calibration" else default["test_auc"]
+        axes[0].plot(roc["fpr"], roc["tpr"], label=f"{label}: AUC={auc:.3f}")
+    axes[0].plot([0, 1], [0, 1], "k--")
+    axes[0].set(xlabel="False Positive Rate", ylabel="Recall", title="ROC: wHash mặc định")
+    axes[0].legend()
+    sweep = default["calibration"]["sweep"]
+    for metric in ("accuracy", "recall", "specificity", "f1", "youden_j"):
+        axes[1].plot([r["threshold"] for r in sweep], [r[metric] for r in sweep], label=metric)
+    axes[1].axvline(default["test_metrics"]["threshold"], color="k", linestyle="--")
+    axes[1].set(xlabel="Ngưỡng Hamming", title="Quét ngưỡng trên hiệu chỉnh")
+    axes[1].legend(fontsize=8)
+    m = default["test_metrics"]
+    confusion = np.array([[m["tn"], m["fp"]], [m["fn"], m["tp"]]])
+    axes[2].imshow(confusion, cmap="Blues")
+    for (i, j), value in np.ndenumerate(confusion):
+        axes[2].text(j, i, str(value), ha="center", va="center")
+    axes[2].set(xticks=[0, 1], yticks=[0, 1], xlabel="Dự đoán (0/1)", ylabel="Nhãn thật (0/1)", title="Confusion matrix: kiểm thử")
+    fig.tight_layout()
+    fig.savefig(output_dir / "evaluation.png", dpi=140)
+    plt.close(fig)
+    fig, axes = plt.subplots(2, 1, figsize=(16, 9))
+    names = [r["name"] for r in table]
+    axes[0].bar(names, [r["auc"] for r in table])
+    axes[0].set(ylabel="AUC kiểm thử", ylim=(0, 1), title="55 cấu hình — cùng phép chia nguồn")
+    axes[1].bar(names, [r["latency_ms"] for r in table])
+    axes[1].set(ylabel="ms / ảnh", title="Median 3 lượt (mặc định), không gồm đọc tệp")
+    for ax in axes:
+        ax.tick_params(axis="x", labelrotation=90, labelsize=7)
+    fig.tight_layout()
+    fig.savefig(output_dir / "benchmark.png", dpi=140)
+    plt.close(fig)
+    return report
+
+
 def main():
     """Tạo dữ liệu khi chưa có chỉ mục và xuất kết quả bàn giao có thể tái lập."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
     parser.add_argument("--rebuild", action="store_true", help="Tái tạo các ảnh mẫu do chương trình quản lý")
+    parser.add_argument("--evaluate", action="store_true", help="Chạy đánh giá và benchmark của Thanh Nguyên")
     args = parser.parse_args()
+    if args.evaluate:
+        run_evaluation(args.data_dir)
+        return
     if args.rebuild or not (args.data_dir / "dataset_pairs.json").exists():
         build_dataset(args.data_dir)
     result = compute_pair_distances(args.data_dir)
