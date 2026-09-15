@@ -1,5 +1,28 @@
 # Walkthrough: Thiết lập Kế hoạch & Tài liệu Lab 3 (Wavelet Image Hashing)
 
+## Cập nhật thực hiện — Trần Ngọc Nhân, 15/09/2026
+
+Đã đọc `plan.md`, `README.md`, `requirement.md`, walkthrough và sơ đồ `image.png`.
+File `implementation_plan.md` được liên kết bên dưới nằm ngoài dự án trên máy thành viên khác,
+không có bản cục bộ để đọc. Các phần bên dưới mục cập nhật này lưu lại kế hoạch ban đầu.
+
+Phần được triển khai: **Phase 1–2** theo bảng phân công.
+
+1. [Module lõi](../vision_wavelet.py): đọc ảnh, 15 biến dạng, lập cặp ảnh,
+   DWT bằng PyWavelets, wHash 64/256 bit, median/mean, Hamming, xuất hash và khoảng cách.
+2. [Dữ liệu](../data/dataset_pairs.json): 15 nguồn, 225 biến thể, 330 cặp có nhãn;
+   từng nguồn và tham số được lưu rõ ràng để tái lập và chia tập theo nguồn.
+3. [Notebook](../Lab3.ipynb): giải thích tiếng Việt, ảnh gốc/biến dạng,
+   bốn băng tần, bit hash và bảng khoảng cách thực nghiệm.
+4. [Kiểm thử](../test_vision_wavelet.py): đối chứng Haar giải tích, tái dựng 6 họ wavelet,
+   hash 64/256 bit, Hamming, tính tái lập và kiểm tra chỉ mục dữ liệu.
+5. [Hướng dẫn](../README.md): lệnh chạy, API bàn giao và giới hạn.
+
+Ảnh kết quả được notebook sinh trong `../results/`.
+Thanh Nguyên tiếp tục Phase 3–4; Minh Quân tiếp tục Phase 5. Phase 6 chưa hoàn tất toàn nhóm.
+
+---
+
 Đã hoàn thành việc phỏng vấn làm rõ yêu cầu (/grill-me) và tạo lập toàn bộ hệ thống tài liệu, bảng phân công nhiệm vụ chi tiết và hướng dẫn kỹ thuật cho **Lab 3: So sánh sự tương đồng hình ảnh sử dụng Wavelet Hashing (Bài thực hành 4 - Chương 3 Part 1)**.
 
 ---

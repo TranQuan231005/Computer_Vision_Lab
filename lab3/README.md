@@ -1,5 +1,97 @@
 # Lab 3: So sánh sự tương đồng hình ảnh sử dụng Wavelet (Wavelet Hashing)
 
+## Bản bàn giao — Trần Ngọc Nhân
+
+**Đã triển khai Phase 1–2:** dữ liệu, biến dạng, DWT, wHash và Hamming.
+Các phần mô tả đánh giá, benchmark và Web Studio phía dưới là **kế hoạch của cả nhóm**, chưa được triển khai trong phần bàn giao này.
+
+### Chạy phần đã hoàn thành
+
+Python >=3.10, mở terminal tại `lab3`:
+
+```powershell
+python -m pip install -r requirements.txt
+python vision_wavelet.py
+python -m unittest -v test_vision_wavelet.py
+```
+
+Mở [Lab3.ipynb](Lab3.ipynb) bằng VS Code/Jupyter, chọn Python đã cài thư viện rồi **Run All**.
+Notebook có phần giải thích tiếng Việt, ảnh minh họa và đầu ra thực nghiệm Phase 1–2.
+`create_notebook.py` tạo lại cấu trúc notebook và sẽ bỏ đầu ra cũ.
+
+Trong phiên hiện tại, thư viện bổ sung nằm tại `.lab3_deps` ở thư mục chứa `Computer_Vision_Lab-main`.
+Có thể chạy tại thư mục đó bằng:
+
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location) '.lab3_deps'
+python Computer_Vision_Lab-main/lab3/vision_wavelet.py
+```
+
+### Dữ liệu đã đóng gói
+
+- 15 ảnh nguồn: 10 mẫu từ `scikit-image` và 5 chữ số bảy đoạn tự vẽ, ghi rõ `synthetic: true`.
+- 225 biến thể: mỗi ảnh có xoay ±5°/±10°, resize 0.8/1.2, sáng 0.8/1.2, Gauss σ=10,
+  muối tiêu 2%, JPEG quality 30/50/70, blur bán kính 1.5 và crop 5% mỗi phía.
+- 330 cặp: 225 cùng nguồn (nhãn 1), 105 tổ hợp hai nguồn khác nhau (nhãn 0).
+- `data/dataset_pairs.json` chứa `schema_version`, `seed`, `originals`, `pairs`, `label_definition`.
+  Mỗi cặp có `id`, `image1`, `image2`, `label`, `source_id1`, `source_id2`, `transform`, `parameters`.
+  Đường dẫn ảnh tương đối với thư mục chứa JSON. Cặp âm tham chiếu trực tiếp `original/`, không nhân bản vào `dissimilar/`.
+- Nguồn ảnh và liên kết tra cứu được lưu trong `originals`; xem [scikit-image data](https://scikit-image.org/docs/stable/api/skimage.data.html)
+  để tra tác giả và điều kiện sử dụng từng ảnh. Ảnh mẫu có chân dung, động vật, đồ vật, phong cảnh và kết cấu.
+- Seed mặc định 42, nhiễu từng ảnh dùng seed cộng thứ tự nguồn. JPEG được giải mã và lưu PNG sau một lần nén.
+- Xoay giữ khung, nền trắng; resize thay độ phân giải. Dữ liệu không mô phỏng đầy đủ góc chụp mới.
+
+Chạy `python vision_wavelet.py --rebuild` để tái tạo các tệp mẫu do chương trình quản lý;
+các tệp trùng tên sẽ được ghi lại. Đọc dữ liệu đã đóng gói không cần mạng;
+tái tạo có thể cần mạng nếu phiên bản scikit-image tải ảnh mẫu theo yêu cầu.
+
+### API bàn giao
+
+```python
+from vision_wavelet import WaveletHasher, hamming_distance, similarity_percentage
+
+hasher = WaveletHasher()  # Haar, ảnh 32×32, level 2, hash 8×8, median
+a = hasher.hash('data/original/astronaut.png')
+b = hasher.hash('data/augmented_similar/astronaut__jpeg_30.png')
+print(hamming_distance(a, b), similarity_percentage(a, b))
+details = hasher.analyze('data/original/astronaut.png')
+large = WaveletHasher(hash_size=16, image_size=64)  # 256 bit
+```
+
+Đầu vào: đường dẫn, PIL hoặc NumPy `uint8` RGB. Xử lý EXIF và ghép alpha nền trắng trước khi chuyển xám.
+`analyze` trả `gray`, `LL`, `LH`, `HL`, `HH`, `coeffs`, `features`, `cutoff`, `bits`, `hex`.
+`hash` trả vector boolean theo từng hàng; `compare` trả `distance`, `similarity`.
+
+DWT dùng `periodization`, bốn băng lấy cùng cấp sâu nhất. Theo [PyWavelets](https://pywavelets.readthedocs.io/en/latest/ref/2d-dwt-and-idwt.html),
+LL=cA, LH=cH, HL=cV, HH=cD; cH/cV theo quy ước trục của thư viện.
+Nếu LL lớn hơn kích thước hash thì lấy trung bình khối đều nhau; nếu nhỏ hơn thì báo lỗi.
+Bit dùng phép **>= median/mean**. Chỉ so sánh hash có cùng cấu hình; lưu `hasher.config()` cùng hash.
+Với wavelet bộ lọc dài hoặc level cao cần tăng kích thước ảnh đầu vào để không vượt `dwt_max_level`.
+Triển khai theo đề bài, không cam kết trùng bit với ImageHash vì không có bước loại DC.
+
+`compute_pair_distances` băm mỗi ảnh một lần. Script xuất `results/pair_distances.json` gồm
+`config`, `n_bits`, `hashes` (hex) và `pairs` có nhãn, khoảng cách và phần trăm bit trùng nhau.
+Notebook xuất `originals.png`, `augmentations.png`, `subbands.png`, `hash_bits.png` vào `results/`.
+
+### Kiểm chứng và giới hạn
+
+Kiểm thử dùng ma trận Haar biết trước, tái dựng nghịch đảo trên 6 họ wavelet,
+64/256 bit, median/mean, Hamming, alpha, ảnh đơn sắc, tham số sai, tái lập nhiễu và tính hợp lệ của mọi cặp/ảnh.
+Đã chạy đạt **7/7 kiểm thử** và **7/7 ô mã notebook**, đã xem kiểm tra bốn hình kết quả.
+Notebook thực nghiệm với Haar 64 bit cho khoảng cách trung bình **4.64/64** ở 225 cặp cùng nguồn,
+và **31.03/64** ở 105 cặp khác nguồn. Hai khoảng giá trị vẫn chồng lấn (0–28 và 8–52),
+nên không thể kết luận phân loại hoàn hảo. Sai số tái dựng ảnh mẫu là khoảng `7.77e-16`.
+15 nguồn ảnh là tập minh họa nhỏ; hash có thể va chạm và không bất biến hoàn toàn với xoay/crop.
+Phần trăm bit trùng **không phải xác suất nhận dạng**. Chưa chọn ngưỡng hay báo cáo ROC/AUC.
+
+Thanh Nguyên tiếp tục Phase 3–4, Minh Quân tiếp tục Phase 5. Khi chia tập chọn ngưỡng/kiểm thử,
+**chia theo nguồn trước khi tạo cặp**; cặp âm phải có cả hai nguồn thuộc cùng tập để tránh rò rỉ dữ liệu.
+Phase 6 chỉ mới hoàn thành tích hợp và kiểm tra phạm vi của Nhân, chưa đánh dấu xong toàn nhóm.
+
+---
+
+## Đặc tả tổng thể của nhóm (bao gồm các phần dự kiến)
+
 Dự án thực hành chuyên sâu về kỹ thuật **Băm hình ảnh dựa trên Biến đổi Wavelet (Wavelet Hashing — wHash)**, đo lường độ tương đồng hình ảnh bằng **Khoảng cách Hamming**, đánh giá hiệu năng thống kê qua **Đường cong ROC & AUC**, khảo sát đa phương pháp băm và xây dựng **Ứng dụng Web Studio tìm kiếm ảnh tương đồng (CBIR)** tương tác thời gian thực.
 
 ---
@@ -69,7 +161,7 @@ lab3/
 ## ⚙️ 3. Hướng dẫn Cài đặt & Môi trường (How to Setup)
 
 ### 3.1 Yêu cầu hệ thống
-- **Python:** Phiên bản `>= 3.8` (khuyên dùng Python 3.10 hoặc 3.11).
+- **Python:** Phiên bản `>= 3.10` cho mã nguồn đã triển khai.
 - **Trình duyệt Web:** Bất kỳ trình duyệt hiện đại nào hỗ trợ HTML5 Canvas (Google Chrome, Microsoft Edge, Mozilla Firefox, Brave, Safari).
 
 ### 3.2 Cài đặt các thư viện Python
@@ -91,10 +183,10 @@ pip install numpy scipy matplotlib pywavelets opencv-python scikit-learn pillow 
 
 ## 🚀 4. Hướng dẫn Thực thi & Triển khai (How to Implement & Run)
 
-### 4.1 Khởi chạy Ứng dụng Web Studio Tương tác (Interactive Web Studio)
+### 4.1 Dự kiến khởi chạy Web Studio (chưa triển khai — Minh Quân)
 Ứng dụng Web Studio được thiết kế chạy **100% Client-Side Static SPA**, hoàn toàn độc lập và không cần cài đặt backend phức tạp:
 
-- **Cách 1 (Mở trực tiếp):** Nhấp đúp chuột vào tệp [`web/index.html`](file:///d:/Computer%20Vision/Lap/lab3/web/index.html) trên máy tính.
+- **Cách 1 (Mở trực tiếp, sau khi triển khai):** Nhấp đúp chuột vào tệp `web/index.html` trên máy tính.
 - **Cách 2 (Khởi chạy qua HTTP Server nội bộ):**
   ```bash
   python -m http.server 8080 --directory web
@@ -110,7 +202,7 @@ pip install numpy scipy matplotlib pywavelets opencv-python scikit-learn pillow 
 ---
 
 ### 4.2 Chạy Thư viện Lõi Python & Kiểm thử tự động
-Chạy script Python độc lập để kiểm tra toàn bộ pipeline từ tạo dữ liệu, trích xuất wHash, tính khoảng cách Hamming đến đánh giá thống kê:
+Chạy script Python để tạo dữ liệu khi chưa có chỉ mục, trích xuất wHash và tính khoảng cách Hamming:
 
 ```bash
 python vision_wavelet.py
@@ -119,8 +211,8 @@ python vision_wavelet.py
 *Script sẽ tự động:*
 1. Khởi tạo tập ảnh mẫu và sinh các biến thể ảnh tương tự / khác biệt trong `data/`.
 2. Tính toán mã băm wHash cho toàn bộ tập dữ liệu.
-3. Xuất bảng chỉ số đánh giá (Accuracy, Recall, Specificity, Precision, F1-Score, AUC).
-4. Lưu biểu đồ 4 băng tần Wavelet, ma trận nhầm lẫn và đường cong ROC vào thư mục kết quả.
+3. Xuất `results/pair_distances.json` để bàn giao cho Phase 3.
+4. Chạy notebook để lưu ảnh nguồn, biến dạng, bốn băng tần và ma trận bit. Chỉ số phân loại và ROC chưa triển khai.
 
 ---
 
@@ -131,7 +223,7 @@ Mở Jupyter Notebook hoặc VS Code / Google Colab để chạy từng bước 
 jupyter notebook Lab3.ipynb
 ```
 
-**Nội dung chi tiết trong Notebook:**
+**Cấu trúc dự kiến cho notebook toàn nhóm (bản hiện tại chỉ có dữ liệu, DWT, hash, Hamming và bàn giao):**
 - **Phần 1:** Giới thiệu lý thuyết biến đổi Wavelet 2D DWT và các họ Wavelet cơ bản.
 - **Phần 2:** Chuẩn bị tập dữ liệu ảnh và sinh các biến dạng hình học, nhiễu, nén.
 - **Phần 3:** Cài đặt thuật toán wHash và trực quan hóa 4 băng tần $LL, LH, HL, HH$.
