@@ -2,6 +2,13 @@
 
 > `[ ]` Chưa làm · `[x]` Đã xong
 
+## Cập nhật phần Minh Quân — 21/09/2026
+
+- Hoàn thành toàn bộ **Phase 5 (5.1–5.5)**: Xây dựng Web Studio 100% Client-Side (`lab3/web/`).
+- Cài đặt thuật toán 2D Haar DWT và wHash (64-bit & 256-bit) độc lập bằng JavaScript (`web/js/wavelet.js`), tương thích chuẩn xác với `vision_wavelet.py`.
+- Tích hợp 4 Tab chuyên biệt: Wavelet Visualizer (4 subbands $LL, LH, HL, HH$), Dual Image Matcher (Hamming distance, gauge, XOR diff), Robustness Stress Lab (biến dạng live với rotation, brightness, contrast, noise, blur), và CBIR Studio (tìm kiếm Top-K ảnh tương đồng với kho ảnh và tính năng nạp thêm ảnh tùy biến).
+- Đóng gói kho dữ liệu mẫu 33 ảnh và precomputed wHash (`web/js/dataset_store.js`) qua script `export_web_data.py`.
+
 ## Cập nhật phần Thanh Nguyên — 16/09/2026
 
 - Phase 3–4 dùng dataset và API của Nhân trong `vision_wavelet.py`.
@@ -83,11 +90,11 @@ Bài thực hành tập trung vào việc áp dụng **Biến đổi Wavelet 2D 
 ### Phase 5 — Bài tập Nâng cao 2 & Web Studio tương tác (Web UI & CBIR Engine)
 | Xong | ID | Công việc chi tiết | Thành viên đảm nhận |
 |:---:|:---:|---|---|
-| [ ] | 5.1 | Thiết kế giao diện Web Studio hiện đại (HTML5 Canvas + Vanilla CSS Dark Glassmorphism, kéo thả ảnh, paste `Ctrl+V`, chọn ảnh mẫu). | Minh Quân |
-| [ ] | 5.2 | Xây dựng bộ trực quan hóa 4 băng tần Wavelet ($LL, LH, HL, HH$) và ma trận bit nhị phân thời gian thực bằng JS Canvas. | Minh Quân |
-| [ ] | 5.3 | Xây dựng bộ so khớp 2 ảnh trực tiếp (Dual Image Matcher): live Hamming distance, số bit lệch, % tương đồng, nhãn Matched / Dissimilar. | Minh Quân |
-| [ ] | 5.4 | Xây dựng phòng thí nghiệm kiểm thử biến dạng trực tiếp (Live Robustness Stress Lab) với thanh trượt thêm nhiễu, xoay, chỉnh sáng, làm mờ. | Minh Quân |
-| [ ] | 5.5 | Xây dựng công cụ tìm kiếm ảnh tương đồng (Content-Based Image Retrieval - CBIR): lập chỉ mục kho ảnh, tìm kiếm & hiển thị Top-K ảnh tương đồng nhất. | Minh Quân |
+| [x] | 5.1 | Thiết kế giao diện Web Studio hiện đại (HTML5 Canvas + Vanilla CSS Dark Glassmorphism, kéo thả ảnh, paste `Ctrl+V`, chọn ảnh mẫu). | Minh Quân |
+| [x] | 5.2 | Xây dựng bộ trực quan hóa 4 băng tần Wavelet ($LL, LH, HL, HH$) và ma trận bit nhị phân thời gian thực bằng JS Canvas. | Minh Quân |
+| [x] | 5.3 | Xây dựng bộ so khớp 2 ảnh trực tiếp (Dual Image Matcher): live Hamming distance, số bit lệch, % tương đồng, nhãn Matched / Dissimilar. | Minh Quân |
+| [x] | 5.4 | Xây dựng phòng thí nghiệm kiểm thử biến dạng trực tiếp (Live Robustness Stress Lab) với thanh trượt thêm nhiễu, xoay, chỉnh sáng, làm mờ. | Minh Quân |
+| [x] | 5.5 | Xây dựng công cụ tìm kiếm ảnh tương đồng (Content-Based Image Retrieval - CBIR): lập chỉ mục kho ảnh, tìm kiếm & hiển thị Top-K ảnh tương đồng nhất. | Minh Quân |
 
 ### Phase 6 — Tích hợp Hệ thống & Đóng gói Báo cáo (System Integration)
 | Xong | ID | Công việc chi tiết | Thành viên đảm nhận |

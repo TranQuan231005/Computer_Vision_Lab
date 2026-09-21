@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wavelet Vision Studio — So Sánh Tương Đồng Ảnh & wHash (Lab 3)</title>
+  <meta name="description" content="Phòng thí nghiệm trực quan hóa Biến đổi Wavelet 2D, Mã băm hình ảnh Wavelet Hash (wHash), So sánh tương đồng và Tìm kiếm ảnh CBIR chạy 100% Client-Side.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="container header-content">
+      <div class="brand-group">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24">
+            <path d="M2 12h3l3-7 4 14 3-7 3 4h4" />
+          </svg>
+        </div>
+        <div class="brand-title">
+          <h1>Wavelet Vision Studio</h1>
+          <div class="brand-subtitle">
+            <span>Lab 3 — Computer Vision</span>
+            <span class="badge-tag">2D DWT + wHash</span>
+            <span class="badge-tag" id="status-tag">Client-Side Engine</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Hash Configuration -->
+      <div class="header-controls">
+        <div class="control-item">
+          <label for="global-hash-size">Kích thước Hash:</label>
+          <select id="global-hash-size" class="control-select">
+            <option value="8" selected>64-bit (8×8)</option>
+            <option value="16">256-bit (16×16)</option>
+          </select>
+        </div>
+        <div class="control-item">
+          <label for="global-threshold">Ngưỡng:</label>
+          <select id="global-threshold" class="control-select">
+            <option value="median" selected>Trung vị (Median)</option>
+            <option value="mean">Trung bình (Mean)</option>
+          </select>
+        </div>
+        <div class="control-item">
+          <label for="global-decision-thresh">Ngưỡng tương đồng:</label>
+          <select id="global-decision-thresh" class="control-select">
+            <option value="10">≤ 10 bit (Khắt khe)</option>
+            <option value="14" selected>≤ 14 bit (Youden J tối ưu)</option>
+            <option value="18">≤ 18 bit (Lỏng)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <div class="container" style="display: flex; gap: 8px;">
+      <button class="tab-btn active" id="tab-btn-visualizer" data-target="view-visualizer">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        1. Wavelet & wHash Visualizer
+      </button>
+      <button class="tab-btn" id="tab-btn-matcher" data-target="view-matcher">
+        <svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
+        2. Dual Image Matcher
+      </button>
+      <button class="tab-btn" id="tab-btn-stress" data-target="view-stress">
+        <svg viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        3. Robustness Stress Lab
+      </button>
+      <button class="tab-btn" id="tab-btn-cbir" data-target="view-cbir">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        4. CBIR Search Engine
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Views Wrapper -->
+  <main class="main-wrapper">
+    <div class="container">
+
+      <!-- ================================================================== -->
+      <!-- TAB 1: WAVELET VISUALIZER -->
+      <!-- ================================================================== -->
+      <section class="view-section active" id="view-visualizer">
+        <div class="visualizer-grid">
+
+          <!-- Left Column: Source Image & Dropzone -->
+          <div class="glass-panel image-preview-card">
+            <div class="panel-header" style="width: 100%;">
+              <div class="panel-title">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Ảnh Đầu Vào
+              </div>
+              <span class="badge-tag" id="vis-image-name">Astronaut</span>
+            </div>
+
+            <div class="preview-canvas-wrapper" id="vis-preview-wrap">
+              <canvas id="vis-input-canvas" width="256" height="256"></canvas>
+            </div>
+
+            <!-- Upload Dropzone -->
+            <div class="dropzone-box" id="vis-dropzone" style="margin-top: 14px; width: 100%;">
+              <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <div class="dropzone-text">
+                Kéo thả ảnh hoặc <strong>chọn tệp</strong> (hỗ trợ Ctrl+V)
+              </div>
+              <input type="file" id="vis-file-input" class="file-hidden-input" accept="image/*">
+            </div>
+
+            <!-- Quick sample chips -->
+            <div class="gallery-bar" style="width: 100%;">
+              <span class="gallery-label">Ảnh mẫu có sẵn:</span>
+              <div class="gallery-chips" id="vis-sample-chips"></div>
+            </div>
+          </div>
+
+          <!-- Middle Column: 4 Wavelet Subbands -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+                Phân Tách 4 Băng Tần 2D DWT (Haar Wavelet)
+              </div>
+              <span class="badge-tag">Cấp phân giải 1</span>
+            </div>
+
+            <div class="subbands-grid">
+              <!-- LL Subband -->
+              <div class="subband-item primary-subband">
+                <div class="subband-header">
+                  <span class="subband-name">LL (Approximation)</span>
+                  <span class="subband-badge badge-ll">Dùng cho wHash</span>
+                </div>
+                <canvas id="canvas-ll" class="subband-canvas" width="128" height="128"></canvas>
+                <div class="subband-desc">Tần số thấp: năng lượng chủ đạo & cấu trúc thô</div>
+              </div>
+
+              <!-- LH Subband -->
+              <div class="subband-item">
+                <div class="subband-header">
+                  <span class="subband-name">LH (Horizontal)</span>
+                  <span class="subband-badge badge-lh">Chi tiết ngang</span>
+                </div>
+                <canvas id="canvas-lh" class="subband-canvas" width="128" height="128"></canvas>
+                <div class="subband-desc">Biến thiên theo hàng: làm nổi bật cạnh ngang</div>
+              </div>
+
+              <!-- HL Subband -->
+              <div class="subband-item">
+                <div class="subband-header">
+                  <span class="subband-name">HL (Vertical)</span>
+                  <span class="subband-badge badge-hl">Chi tiết dọc</span>
+                </div>
+                <canvas id="canvas-hl" class="subband-canvas" width="128" height="128"></canvas>
+                <div class="subband-desc">Biến thiên theo cột: làm nổi bật cạnh dọc</div>
+              </div>
+
+              <!-- HH Subband -->
+              <div class="subband-item">
+                <div class="subband-header">
+                  <span class="subband-name">HH (Diagonal)</span>
+                  <span class="subband-badge badge-hh">Chi tiết chéo & nhiễu</span>
+                </div>
+                <canvas id="canvas-hh" class="subband-canvas" width="128" height="128"></canvas>
+                <div class="subband-desc">Tần số cao: góc nhọn, đường chéo và nhiễu hạt</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: wHash Bit Matrix & Hex -->
+          <div class="glass-panel hash-view-column">
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Lưới Bit wHash
+              </div>
+              <span class="badge-tag" id="vis-bit-count">64-bit</span>
+            </div>
+
+            <div class="bit-matrix-wrapper">
+              <canvas id="vis-bits-canvas" class="bit-matrix-canvas" width="256" height="256"></canvas>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 8px; text-align: center;">
+                ■ Xanh ngọc: Bit 1 (≥ Ngưỡng) · ■ Tối: Bit 0 (< Ngưỡng)
+              </div>
+            </div>
+
+            <!-- Hex Display -->
+            <div>
+              <span class="gallery-label">Mã Hex Chuẩn:</span>
+              <div class="hex-box">
+                <span class="hex-text" id="vis-hex-val">----------------</span>
+                <button class="btn-icon" id="vis-copy-hex-btn" title="Sao chép mã Hex">
+                  <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div style="font-size: 0.76rem; color: var(--text-secondary); background: rgba(0,0,0,0.25); padding: 10px; border-radius: var(--radius-sm);">
+              <strong>Ngưỡng phân tách (Cutoff):</strong> <span id="vis-cutoff-val">0.00</span><br>
+              Lượng tử hóa ma trận xấp xỉ LL sau khi pooling trung bình khối.
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- TAB 2: DUAL MATCHER -->
+      <!-- ================================================================== -->
+      <section class="view-section" id="view-matcher">
+        <div class="matcher-layout">
+
+          <!-- Left: Image A -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span class="badge-tag" style="background: var(--accent-primary);">Ảnh A</span>
+                <span id="matcher-name-a">Astronaut</span>
+              </div>
+            </div>
+
+            <div class="preview-canvas-wrapper" style="width: 100%; height: 220px;">
+              <canvas id="matcher-canvas-a" width="220" height="220"></canvas>
+            </div>
+
+            <div class="hex-box" style="margin-top: 12px;">
+              <span class="hex-text" id="matcher-hex-a">--</span>
+            </div>
+
+            <div class="dropzone-box" id="matcher-dropzone-a" style="margin-top: 10px;">
+              <div class="dropzone-text">Kéo thả / <strong>Tải ảnh A</strong></div>
+              <input type="file" id="matcher-file-a" class="file-hidden-input" accept="image/*">
+            </div>
+
+            <div class="gallery-bar">
+              <span class="gallery-label">Chọn nhanh ảnh A:</span>
+              <div class="gallery-chips" id="matcher-chips-a"></div>
+            </div>
+          </div>
+
+          <!-- Center: Match Verdict & Gauge -->
+          <div class="glass-panel match-verdict-card">
+            <div class="panel-title" style="margin-bottom: 0;">Kết Quả So Sánh</div>
+
+            <!-- Similarity Gauge -->
+            <div class="similarity-gauge">
+              <svg class="gauge-svg" viewBox="0 0 140 140">
+                <circle class="gauge-bg" cx="70" cy="70" r="55"></circle>
+                <circle class="gauge-progress" id="match-gauge-bar" cx="70" cy="70" r="55"></circle>
+              </svg>
+              <div class="gauge-label">
+                <span class="gauge-value" id="match-sim-val">100%</span>
+                <span class="gauge-unit">Độ tương đồng</span>
+              </div>
+            </div>
+
+            <!-- Verdict Badge -->
+            <div class="verdict-badge verdict-matched" id="match-verdict-badge">
+              MATCHED (TƯƠNG TỰ)
+            </div>
+
+            <!-- Quantitative Metrics -->
+            <div class="metrics-row">
+              <div class="metric-item">
+                <span class="metric-val" id="match-dist-val">0</span>
+                <span class="metric-lbl">Khoảng cách Hamming</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-val" id="match-diff-bits">0 / 64</span>
+                <span class="metric-lbl">Bit lệch</span>
+              </div>
+            </div>
+
+            <!-- XOR Diff Matrix -->
+            <div class="diff-matrix-card">
+              <span class="gallery-label">Bản đồ XOR bit lệch:</span>
+              <canvas id="matcher-diff-canvas" class="diff-canvas" width="128" height="128"></canvas>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">■ Xanh: Khớp bit · ■ Đỏ: Lệch bit</span>
+            </div>
+          </div>
+
+          <!-- Right: Image B -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <span class="badge-tag" style="background: var(--accent-cyan); color: #083344;">Ảnh B</span>
+                <span id="matcher-name-b">Astronaut (Blur)</span>
+              </div>
+            </div>
+
+            <div class="preview-canvas-wrapper" style="width: 100%; height: 220px;">
+              <canvas id="matcher-canvas-b" width="220" height="220"></canvas>
+            </div>
+
+            <div class="hex-box" style="margin-top: 12px;">
+              <span class="hex-text" id="matcher-hex-b">--</span>
+            </div>
+
+            <div class="dropzone-box" id="matcher-dropzone-b" style="margin-top: 10px;">
+              <div class="dropzone-text">Kéo thả / <strong>Tải ảnh B</strong></div>
+              <input type="file" id="matcher-file-b" class="file-hidden-input" accept="image/*">
+            </div>
+
+            <div class="gallery-bar">
+              <span class="gallery-label">Chọn nhanh ảnh B:</span>
+              <div class="gallery-chips" id="matcher-chips-b"></div>
+            </div>
+          </div>
+
+          <!-- Quick Test Presets Bar -->
+          <div class="quick-pairs-bar">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary);">Cặp thử nghiệm nhanh:</span>
+            <button class="quick-btn" id="btn-pair-similar-blur">Astronaut vs Astronaut (Mờ Gaussian)</button>
+            <button class="quick-btn" id="btn-pair-similar-noise">Camera vs Camera (Nhiễu hạt)</button>
+            <button class="quick-btn" id="btn-pair-similar-rot">Coffee vs Coffee (Xoay +5°)</button>
+            <button class="quick-btn" id="btn-pair-diff-1">Astronaut vs Con Ngựa (Khác biệt)</button>
+            <button class="quick-btn" id="btn-pair-diff-2">Tên Lửa vs Chữ Số 3 (Khác biệt)</button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- TAB 3: STRESS LAB -->
+      <!-- ================================================================== -->
+      <section class="view-section" id="view-stress">
+        <div class="stress-grid">
+
+          <!-- Left: Base Original -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">Ảnh Gốc Tham Chiếu</div>
+              <span class="badge-tag">Gốc (Ground Truth)</span>
+            </div>
+
+            <div class="preview-canvas-wrapper" style="width: 100%; height: 220px;">
+              <canvas id="stress-base-canvas" width="220" height="220"></canvas>
+            </div>
+
+            <div class="hex-box" style="margin-top: 12px;">
+              <span class="hex-text" id="stress-base-hex">--</span>
+            </div>
+
+            <div class="gallery-bar">
+              <span class="gallery-label">Chọn ảnh làm mẫu thử:</span>
+              <div class="gallery-chips" id="stress-sample-chips"></div>
+            </div>
+          </div>
+
+          <!-- Center: Interactive Sliders -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                Thanh Trượt Biến Dạng Thời Gian Thực
+              </div>
+              <button class="btn-secondary" id="stress-reset-btn" style="padding: 4px 12px; font-size: 0.78rem;">
+                Đặt lại ban đầu
+              </button>
+            </div>
+
+            <div class="slider-group">
+              <!-- Rotation -->
+              <div class="slider-control">
+                <div class="slider-header">
+                  <span>Góc Xoay (Rotation):</span>
+                  <span class="slider-value" id="val-rot">0°</span>
+                </div>
+                <input type="range" id="slider-rot" min="-30" max="30" value="0" step="1">
+              </div>
+
+              <!-- Brightness -->
+              <div class="slider-control">
+                <div class="slider-header">
+                  <span>Độ Sáng (Brightness):</span>
+                  <span class="slider-value" id="val-bright">100%</span>
+                </div>
+                <input type="range" id="slider-bright" min="50" max="150" value="100" step="2">
+              </div>
+
+              <!-- Contrast -->
+              <div class="slider-control">
+                <div class="slider-header">
+                  <span>Độ Tương Phản (Contrast):</span>
+                  <span class="slider-value" id="val-contrast">100%</span>
+                </div>
+                <input type="range" id="slider-contrast" min="50" max="150" value="100" step="2">
+              </div>
+
+              <!-- Gaussian Noise -->
+              <div class="slider-control">
+                <div class="slider-header">
+                  <span>Nhiễu Hạt (Gaussian / Grain Noise):</span>
+                  <span class="slider-value" id="val-noise">0%</span>
+                </div>
+                <input type="range" id="slider-noise" min="0" max="50" value="0" step="1">
+              </div>
+
+              <!-- Gaussian Blur -->
+              <div class="slider-control">
+                <div class="slider-header">
+                  <span>Làm Mờ (Gaussian Blur):</span>
+                  <span class="slider-value" id="val-blur">0 px</span>
+                </div>
+                <input type="range" id="slider-blur" min="0" max="10" value="0" step="0.5">
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Live Transformed Result -->
+          <div class="glass-panel" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+            <div class="panel-header" style="width: 100%;">
+              <div class="panel-title">Ảnh Sau Biến Dạng</div>
+              <span class="badge-tag" id="stress-live-status">Nguyên bản</span>
+            </div>
+
+            <div class="preview-canvas-wrapper" style="width: 100%; height: 220px;">
+              <canvas id="stress-live-canvas" width="220" height="220"></canvas>
+            </div>
+
+            <div class="metrics-row" style="margin-top: 14px;">
+              <div class="metric-item">
+                <span class="metric-val" id="stress-live-dist">0</span>
+                <span class="metric-lbl">Hamming lệch</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-val" id="stress-live-sim">100%</span>
+                <span class="metric-lbl">Độ bền wHash</span>
+              </div>
+            </div>
+
+            <div class="verdict-badge verdict-matched" id="stress-verdict-badge" style="margin-top: 14px;">
+              VẪN TƯƠNG TỰ (ROBUST)
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- TAB 4: CBIR STUDIO -->
+      <!-- ================================================================== -->
+      <section class="view-section" id="view-cbir">
+        <div class="glass-panel" style="margin-bottom: 22px;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Tìm Kiếm Ảnh Tương Đồng (Content-Based Image Retrieval)
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <span class="badge-tag" id="cbir-db-count">Kho ảnh: 33 ảnh</span>
+              <button class="btn-secondary" id="cbir-upload-btn" style="padding: 4px 12px; font-size: 0.78rem;">
+                + Thêm ảnh vào kho
+              </button>
+              <input type="file" id="cbir-upload-input" class="file-hidden-input" accept="image/*" multiple>
+            </div>
+          </div>
+
+          <div class="cbir-search-header">
+            <!-- Query Image Thumbnail -->
+            <div class="cbir-query-preview" id="cbir-query-wrap">
+              <img id="cbir-query-img" src="" alt="Ảnh truy vấn">
+            </div>
+
+            <div class="cbir-controls-row">
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Số lượng Top-K kết quả:</label>
+                <select id="cbir-topk-select" class="control-select">
+                  <option value="4">Top 4 ảnh</option>
+                  <option value="8" selected>Top 8 ảnh</option>
+                  <option value="12">Top 12 ảnh</option>
+                  <option value="20">Top 20 ảnh</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Chọn ảnh truy vấn mẫu:</label>
+                <select id="cbir-sample-select" class="control-select"></select>
+              </div>
+
+              <div class="dropzone-box" id="cbir-dropzone" style="padding: 10px 16px; min-width: 220px;">
+                <div class="dropzone-text" style="font-size: 0.78rem;">
+                  Kéo thả ảnh truy vấn hoặc <strong>tải lên</strong>
+                </div>
+                <input type="file" id="cbir-query-input" class="file-hidden-input" accept="image/*">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CBIR Results Grid -->
+        <div class="cbir-results-grid" id="cbir-results-container"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <div class="container footer-content">
+      <div>
+        <strong>Wavelet Vision Studio (PyWavelets + JS Engine)</strong> · Nhóm Computer Vision Lab 3 (Ngọc Nhân, Thanh Nguyên, Minh Quân)
+      </div>
+      <div>
+        Thuật toán: 2D Haar DWT & wHash · 100% Client-Side In-Browser
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/wavelet.js"></script>
+  <script src="js/dataset_store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
